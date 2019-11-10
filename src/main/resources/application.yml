@@ -1,0 +1,50 @@
+spring:
+  profiles:
+    active: development
+  jpa:
+    show-sql: true
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+  data:
+    rest:
+      base-path: /api
+---
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+---
+
+server:
+  address: 0.0.0.0
+  port: 8080
+
+---
+
+spring:
+  profiles: development
+  jpa:
+    show-sql: true
+    generate-ddl: true
+    hibernate:
+      ddl-auto: validate
+    database: postgresql
+
+  datasource:
+    url: jdbc:postgresql://dumbo.db.elephantsql.com:5432/eejbbejh
+    username: eejbbejh
+    password: 2tqlo2_7ZyNR3UqgHZ4ukLU-T8tHzldU
+    driverClassName: org.postgresql.Driver
+    hikari:
+      minimum-idle: 1
+      maximum-pool-size: 5
+    platform: postgres
+
+logging:
+  level:
+    org.springframework.data.rest: WARN
+    org.springframework.web: WARN
+    org.hibernate: WARN
