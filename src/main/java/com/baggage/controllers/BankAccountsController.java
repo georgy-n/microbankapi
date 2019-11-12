@@ -67,14 +67,15 @@ public class BankAccountsController {
 
     @GetMapping(value = "/delete", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getUserById(@RequestHeader(value = AUTH_HEADER_NAME) String authHeader,
-                                         @RequestParam(name = "account") Integer bankAccountId) {
+                                         @RequestParam(name = "account") Long bankAccountNumber) {
         try {
             String userName = TokenUtil.getUserNameFromToken(authHeader);
             Optional<ClientDao> client = clientService.findByUsername(userName);
             if (client.isPresent()) {
                 List<BankAccountDao> bankAccountDao = bankAccountsService.findAllBankAccountsByUserId(client.get().getId());
-                if (bankAccountDao.stream().map(BankAccountDao::getId).anyMatch((id) -> id.equals(bankAccountId))) {
-                    bankAccountsService.deleteBankAccountById(bankAccountId);
+                Optional<BankAccountDao> maybeBankAccount = bankAccountDao.stream().filter((ba) -> ba.getNumber().equals(bankAccountNumber)).findFirst();
+                if (maybeBankAccount.isPresent()) {
+                    bankAccountsService.deleteBankAccountById(maybeBankAccount.get().getId());
                     return new ResponseEntity<>(
                             new CustomResponse<>(
                                     "OK",

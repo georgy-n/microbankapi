@@ -43,9 +43,9 @@ public class FriendController {
                                                  @RequestHeader(value = AUTH_HEADER_NAME) String authHeader) {
         try {
             String currentUserName = TokenUtil.getUserNameFromToken(authHeader);
-            if (currentUserName.equals(friendRequest.getOwnerId())) {
-                Optional<ClientDao> sender = clientService.findByUsername(friendRequest.getOwnerId());
-                Optional<ClientDao> recipient = clientService.findByUsername(friendRequest.getRecipientId());
+            if (currentUserName.equals(friendRequest.getOwnerUserName())) {
+                Optional<ClientDao> sender = clientService.findByUsername(friendRequest.getOwnerUserName());
+                Optional<ClientDao> recipient = clientService.findByUsername(friendRequest.getRecipientUserName());
 
                 if (sender.isPresent() && recipient.isPresent()) {
                     if (!friendsService.hasFriendship(sender.get().getId(), recipient.get().getId())) {
@@ -120,10 +120,13 @@ public class FriendController {
 
     @Transactional
     @GetMapping("/acceptRequest")
-    public ResponseEntity acceptFriendRequest(@RequestParam Integer requestId) {
+    public ResponseEntity acceptFriendRequest(@RequestParam Integer requestId,
+                                              @RequestHeader(value = AUTH_HEADER_NAME) String authHeader) {
         try {
+            String userName = TokenUtil.getUserNameFromToken(authHeader);
+            Optional<ClientDao> client = clientService.findByUsername(userName);
             Optional<FriendRequestDao> friendRequest = friendRequestService.findByRequestId(requestId);
-            if (friendRequest.isPresent()) {
+            if (friendRequest.isPresent() && client.isPresent() && friendRequest.get().getRecipientId().equals(client.get().getId())) {
                 friendsService.addFriend(friendRequest.get().getSenderId(), friendRequest.get().getRecipientId());
                 friendRequestService.deleteFriendRequest(requestId);
                 return new ResponseEntity<>(new CustomResponse<>(OK,

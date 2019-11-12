@@ -2,28 +2,31 @@ package com.baggage.entity.httpRequests;
 
 public class FriendRequest {
 
-	private String ownerId;
+	private String ownerUserName;
 
-	public String getOwnerId() {
-		return ownerId;
+	public String getOwnerUserName() {
+		return ownerUserName;
 	}
 
-	public void setOwnerId(String ownerId) {
-		this.ownerId = ownerId;
+	public void setOwnerUserName(String ownerUserName) {
+		this.ownerUserName = ownerUserName;
 	}
 
-	public String getRecipientId() {
-		return recipientId;
+	public String getRecipientUserName() {
+		return recipientUserName;
 	}
 
-	public void setRecipientId(String recipientId) {
-		this.recipientId = recipientId;
+	public void setRecipientUserName(String recipientUserName) {
+		this.recipientUserName = recipientUserName;
 	}
 
-	private String recipientId;
+	private String recipientUserName;
 
-	public FriendRequest(String ownerId, String recipientId) {
-		this.ownerId = ownerId;
-		this.recipientId = recipientId;
+	public FriendRequest() {
+	}
+
+	public FriendRequest(String ownerUserName, String recipientUserName) {
+		this.ownerUserName = ownerUserName;
+		this.recipientUserName = recipientUserName;
 	}
 }
