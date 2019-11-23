@@ -1,12 +1,13 @@
 package com.baggage.controllers;
 
 import com.baggage.entity.CustomResponse;
-import com.baggage.entity.httpRequests.FriendRequest;
 import com.baggage.entity.dao.ClientDao;
 import com.baggage.entity.dao.FriendRequestDao;
+import com.baggage.entity.httpRequests.FriendRequest;
 import com.baggage.service.ClientService;
 import com.baggage.service.FriendRequestService;
 import com.baggage.service.FriendsService;
+import com.baggage.utils.CustomError;
 import com.baggage.utils.TokenUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,24 +56,28 @@ public class FriendController {
                                 Optional.empty(),
                                 Optional.of(req.getId())
                         ), HttpStatus.OK);
-                    } else return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
+                    } else
+                        return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
                             Optional.of("Request is exist"),
                             Optional.empty()
-                    ), HttpStatus.OK);
-                } else return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
-                        Optional.of("User not found"),
-                        Optional.empty()
-                ), HttpStatus.OK);
+                        ), HttpStatus.OK);
+                } else
+                    return new ResponseEntity<>(
+                            new CustomResponse<>(
+                                    INTERNAL_ERROR,
+                                    Optional.of("User not found"),
+                                    Optional.empty()
+                            ), HttpStatus.OK);
             } else
                 return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
-                        Optional.of("Create failed"),
+                        Optional.of("You can create request only for yourself"),
                         Optional.empty()
                 ), HttpStatus.OK);
 
         } catch (Exception e) {
             logger.error(e.getMessage());
             return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
-                    Optional.of("You cant create request not for yourself"),
+                    Optional.of("Create friend request failed"),
                     Optional.empty()
             ), HttpStatus.OK);
         }
@@ -80,18 +85,25 @@ public class FriendController {
 
     @GetMapping("/getAllRequests")
     public ResponseEntity getAllFriendRequests(@RequestHeader(value = AUTH_HEADER_NAME) String authHeader) {
-        String userName = TokenUtil.getUserNameFromToken(authHeader);
-        Optional<ClientDao> client = clientService.findByUsername(userName);
-        if (client.isPresent()) {
-            List<Integer> reqs = friendRequestService.findAllRequestsByUserId(client.get().getId());
-            return new ResponseEntity<>(new CustomResponse<>(OK,
-                    Optional.empty(),
-                    Optional.of(reqs)
-            ), HttpStatus.OK);
-        } else {
-            //TODO кажется ситуация трешевая, но сейчас вполне вероятная
+        try {
+            String userName = TokenUtil.getUserNameFromToken(authHeader);
+            Optional<ClientDao> client = clientService.findByUsername(userName);
+            if (client.isPresent()) {
+                List<Integer> reqs = friendRequestService.findAllRequestsByUserId(client.get().getId());
+                return new ResponseEntity<>(new CustomResponse<>(OK,
+                        Optional.empty(),
+                        Optional.of(reqs)
+                ), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
+                        Optional.of("user not found"),
+                        Optional.empty()
+                ), HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
             return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
-                    Optional.of("user not found"),
+                    Optional.of("Load friend request failed"),
                     Optional.empty()
             ), HttpStatus.OK);
         }
@@ -99,23 +111,26 @@ public class FriendController {
 
     @GetMapping("/getAll")
     public ResponseEntity getAllFriends(@RequestHeader(value = AUTH_HEADER_NAME) String authHeader) {
-        String userName = TokenUtil.getUserNameFromToken(authHeader);
-        Optional<ClientDao> client = clientService.findByUsername(userName);
-        if (client.isPresent()) {
-            List<Integer> friendIds = friendsService.findAllFriendIdById(client.get().getId());
-            List<String> friendLogins = clientService.findLoginsByIds(friendIds);
-            return new ResponseEntity<>(new CustomResponse<>(OK,
-                    Optional.empty(),
-                    Optional.of(friendLogins)
-            ), HttpStatus.OK);
-        } else {
-            //TODO кажется ситуация трешевая, но сейчас вполне вероятная
+        try {
+            String userName = TokenUtil.getUserNameFromToken(authHeader);
+            Optional<ClientDao> client = clientService.findByUsername(userName);
+            if (client.isPresent()) {
+                List<Integer> friendIds = friendsService.findAllFriendIdById(client.get().getId());
+                List<String> friendLogins = clientService.findLoginsByIds(friendIds);
+                return new ResponseEntity<>(new CustomResponse<>(OK,
+                        Optional.empty(),
+                        Optional.of(friendLogins)
+                ), HttpStatus.OK);
+            } else {
+                throw new CustomError("user not found");
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
             return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
-                    Optional.of("user not found"),
+                    Optional.of("Load friends failed"),
                     Optional.empty()
             ), HttpStatus.OK);
         }
-
     }
 
     @Transactional
@@ -172,11 +187,11 @@ public class FriendController {
     public ResponseEntity deleteFriendShip(@RequestHeader(value = AUTH_HEADER_NAME) String authHeader, @RequestParam String friendUserName) {
         try {
             String currentUserName = TokenUtil.getUserNameFromToken(authHeader);
-            Optional<ClientDao> friend1 = clientService.findByUsername(currentUserName);
-            Optional<ClientDao> friend2 = clientService.findByUsername(friendUserName);
-            if (friend1.isPresent() && friend2.isPresent()) {
-                if (friendsService.hasFriendship(friend1.get().getId(), friend2.get().getId())) {
-                    friendsService.deleteFriendship(friend1.get().getId(), friend2.get().getId());
+            Optional<ClientDao> currentUser = clientService.findByUsername(currentUserName);
+            Optional<ClientDao> friend = clientService.findByUsername(friendUserName);
+            if (currentUser.isPresent() && friend.isPresent()) {
+                if (friendsService.hasFriendship(currentUser.get().getId(), friend.get().getId())) {
+                    friendsService.deleteFriendship(currentUser.get().getId(), friend.get().getId());
                     return new ResponseEntity<>(new CustomResponse<>(OK,
                             Optional.empty(),
                             Optional.empty()

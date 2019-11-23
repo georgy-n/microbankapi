@@ -7,6 +7,7 @@ import com.baggage.service.FriendsService;
 import com.baggage.utils.CustomError;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,17 +30,21 @@ public class FriendsServiceImpl implements FriendsService {
         return friends.stream().map(FriendshipDao::getRecipientId).collect(Collectors.toList());
     }
 
+    @Transactional
     @Override
     public FriendshipDao addFriend(Integer userIdA, Integer userIdB) throws CustomError {
         try {
-            FriendshipDao friendship = new FriendshipDao(userIdA, userIdB);
-            friendsRepository.save(friendship);
-            return friendship;
+            FriendshipDao friendshipAB = new FriendshipDao(userIdA, userIdB);
+            FriendshipDao friendshipBA = new FriendshipDao(userIdB, userIdA);
+            friendsRepository.save(friendshipAB);
+            friendsRepository.save(friendshipBA);
+            return friendshipAB;
         } catch (Exception e) {
             throw new CustomError("Add friendship is failed");
         }
     }
 
+    @Transactional
     @Override
     public void deleteFriendship(Integer userIdA, Integer userIdB) throws CustomError {
         Optional<FriendshipDao> recordA = friendsRepository.findByOwnerIdAndRecipientId(userIdA, userIdB);

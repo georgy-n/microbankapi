@@ -39,7 +39,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
             friendRequestRepository.deleteById(requestId);
         }
         catch (Exception e) {
-            throw new CustomError("delete friend resuest failed " + requestId);
+            throw new CustomError("delete friend request failed " + requestId);
         }
     }
 
