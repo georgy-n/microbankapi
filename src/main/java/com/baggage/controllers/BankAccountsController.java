@@ -36,6 +36,27 @@ public class BankAccountsController {
         this.bankAccountsService = bankAccountsService;
     }
 
+    @GetMapping(value = "/getAll")
+    public ResponseEntity<?> getAllBankAccounts(
+                                    @RequestHeader(value = AUTH_HEADER_NAME) String authHeader) {
+        try {
+            String userName = TokenUtil.getUserNameFromToken(authHeader);
+            Optional<ClientDao> client = clientService.findByUsername(userName);
+            if (client.isPresent()) {
+                return new ResponseEntity<>(new CustomResponse<>(OK,
+                        Optional.empty(),
+                        Optional.of(bankAccountsService.findAllBankAccountsByUserId(client.get().getId()))
+                ), HttpStatus.OK);
+            } else throw new CustomError("cant find user by session");
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
+                    Optional.of("Getting all bank account is failed"),
+                    Optional.empty()), HttpStatus.OK);
+        }
+
+    }
+
     @PostMapping(value = "/create")
     public ResponseEntity<?> create(@RequestBody CreateBankAccountRequest createBankAccountRequest,
                                     @RequestHeader(value = AUTH_HEADER_NAME) String authHeader) {

@@ -5,6 +5,7 @@ public class CustomError extends Exception {
 	private String errorMessage;
 
 	public CustomError(String errorMessage) {
+		super(errorMessage);
 		this.errorMessage = errorMessage;
 	}
 
