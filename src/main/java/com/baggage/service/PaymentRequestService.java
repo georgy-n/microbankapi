@@ -9,6 +9,6 @@ import java.util.Optional;
 
 public interface PaymentRequestService {
     PaymentRequestDao savePaymentRequest(PaymentRequestDao paymentRequestDao);
-    List<PaymentRequestDao> findByBankAccountId(Integer bankAccountId);
+    List<PaymentRequestDao> findAllByBankAccountId(Integer bankAccountId);
     Optional<PaymentRequestDao> findByPaymentRequestId(Integer paymentRequestId);
 }

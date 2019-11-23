@@ -33,7 +33,7 @@ public class PaymentRequestServiceImpl implements PaymentRequestService {
     }
 
     @Override
-    public List<PaymentRequestDao> findByBankAccountId(Integer bankAccountId) {
+    public List<PaymentRequestDao> findAllByBankAccountId(Integer bankAccountId) {
         return paymentRequestRepository.findAllByIdBankAccountFromOrIdBankAccountTo(bankAccountId, bankAccountId);
     }
 

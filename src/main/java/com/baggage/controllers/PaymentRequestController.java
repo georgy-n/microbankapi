@@ -19,7 +19,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import static com.baggage.utils.Constants.*;
 
@@ -48,28 +51,24 @@ public class PaymentRequestController {
                                     @RequestHeader(value = AUTH_HEADER_NAME) String authHeader) {
         try {
             String userName = TokenUtil.getUserNameFromToken(authHeader);
-
-            Optional<ClientDao> owner = clientService.findByUsername(userName);
-
-            Optional<BankAccountDao> ownerBankAccount = bankAccountsService
-                    .findByBankAccountId(createPaymentRequest.getBankAccountFrom());
-
-            Optional<ClientDao> recipient = bankAccountsService
-                    .findByBankAccountId(createPaymentRequest.getBankAccountTo())
-                    .flatMap((BankAccountDao ba) -> clientService.findById(ba.getOwnerId()));
-
-            Optional<BankAccountDao> recipientBankAccount = recipient
+            Optional<ClientDao> currentUser = clientService.findByUsername(userName);
+            Optional<BankAccountDao> currentUserBankAccount = currentUser
                     .flatMap(c -> bankAccountsService
                             .findAllBankAccountsByUserId(c.getId())
                             .stream()
                             .filter(ba -> ba.getId().equals(createPaymentRequest.getBankAccountTo()))
                             .findFirst());
 
-            if (owner.isPresent()
-                    && recipient.isPresent()
-                    && ownerBankAccount.isPresent()
-                    && recipientBankAccount.isPresent()) {
-                if (friendsService.hasFriendship(owner.get().getId(), recipient.get().getId())) {
+            Optional<BankAccountDao> bankAccountFrom = bankAccountsService
+                    .findByBankAccountId(createPaymentRequest.getBankAccountFrom());
+            Optional<ClientDao> owner = bankAccountFrom
+                    .flatMap((BankAccountDao ba) -> clientService.findById(ba.getOwnerId()));
+
+            if (currentUser.isPresent()
+                    && bankAccountFrom.isPresent()
+                    && owner.isPresent()
+                    && currentUserBankAccount.isPresent()) {
+                if (friendsService.hasFriendship(currentUser.get().getId(), owner.get().getId())) {
                     PaymentRequestDao paymentRequestDao = new PaymentRequestDao(
                             createPaymentRequest.getBankAccountFrom(),
                             createPaymentRequest.getBankAccountTo(),
@@ -82,7 +81,8 @@ public class PaymentRequestController {
                             Optional.of(paymentRequestService.savePaymentRequest(paymentRequestDao))
                     ), HttpStatus.OK);
                 } else throw new CustomError("not friend");
-            } else throw new CustomError("cant find user by session");
+            } else throw new CustomError("cant find one of needed element");
+
         } catch (Exception e) {
             log.error(e.getMessage());
             return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
@@ -129,9 +129,9 @@ public class PaymentRequestController {
                                     @RequestParam(name = "paymentRequest") Integer paymentRequestId) {
         try {
             String userName = TokenUtil.getUserNameFromToken(authHeader);
-            Optional<ClientDao> client = clientService.findByUsername(userName);
+            Optional<ClientDao> currentUser = clientService.findByUsername(userName);
             Optional<PaymentRequestDao> paymentRequestDao = paymentRequestService.findByPaymentRequestId(paymentRequestId);
-            Optional<BankAccountDao> fromBankAccount = client
+            Optional<BankAccountDao> fromBankAccount = currentUser
                     .flatMap(c -> paymentRequestDao.flatMap(pr -> bankAccountsService
                             .findAllBankAccountsByUserId(c.getId())
                             .stream()
@@ -143,14 +143,14 @@ public class PaymentRequestController {
                             .findByBankAccountId(pr.getIdBankAccountTo()));
 
 
-            if (client.isPresent() && paymentRequestDao.isPresent() && fromBankAccount.isPresent() && toBankAccount.isPresent()) {
+            if (currentUser.isPresent() && paymentRequestDao.isPresent() && fromBankAccount.isPresent() && toBankAccount.isPresent()) {
                 PaymentRequestDao prd = paymentRequestDao.get();
                 BankAccountDao fromBA = fromBankAccount.get();
                 BankAccountDao toBA = toBankAccount.get();
-                prd.setStatus(ACCEPTED);
-                fromBA.minusBalance(prd.getAmount());
-                toBA.plusBalance(prd.getAmount());
                 synchronized (sync) {
+                    prd.setStatus(ACCEPTED);
+                    fromBA.minusBalance(prd.getAmount());
+                    toBA.plusBalance(prd.getAmount());
                     bankAccountsService.save(fromBA);
                     bankAccountsService.save(toBA);
                     paymentRequestService.savePaymentRequest(prd);
@@ -169,6 +169,32 @@ public class PaymentRequestController {
                     Optional.empty()), HttpStatus.OK);
         }
     }
+
+    @GetMapping(value = "/getAll")
+    public ResponseEntity<?> getAllPaymentRequest(
+            @RequestHeader(value = AUTH_HEADER_NAME) String authHeader) {
+        try {
+            String userName = TokenUtil.getUserNameFromToken(authHeader);
+            Optional<ClientDao> client = clientService.findByUsername(userName);
+            if (client.isPresent()) {
+                List<BankAccountDao> bankAccountDaoList = bankAccountsService.findAllBankAccountsByUserId(client.get().getId());
+                List<PaymentRequestDao> paymentRequestDaoList = bankAccountDaoList.stream()
+                        .flatMap(ba -> paymentRequestService.findAllByBankAccountId(ba.getId()).stream())
+                        .collect(Collectors.toList());
+                return new ResponseEntity<>(new CustomResponse<>(OK,
+                        Optional.empty(),
+                        Optional.of(paymentRequestDaoList)
+                ), HttpStatus.OK);
+            } else throw new CustomError("cant find user by session");
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,
+                    Optional.of("Getting all bank account is failed"),
+                    Optional.empty()), HttpStatus.OK);
+        }
+
+    }
+
 }
 
 
