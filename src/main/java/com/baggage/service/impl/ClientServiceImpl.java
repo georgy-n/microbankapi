@@ -38,12 +38,12 @@ public class ClientServiceImpl implements ClientService {
         try {
             return clientRepository.save(clientDao);
         } catch (Exception e) {
-            logger.error("Failed save to database", e.getMessage());
+            logger.error("Failed save to database with msg " + e.getMessage());
             throw e;
         }
     }
 
-    //TODO unsafe huerga
+    //TODO unsafe
     @Override
     public List<String> findLoginsByIds(List<Integer> ids) {
         try {

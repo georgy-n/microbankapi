@@ -7,6 +7,7 @@ import com.baggage.entity.httpRequests.RegistationRequest;
 import com.baggage.service.ClientService;
 
 import com.baggage.service.CustomPasswordEncoder;
+import com.baggage.utils.CustomError;
 import com.baggage.utils.TokenUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.cert.PKIXRevocationChecker;
 import java.util.Optional;
 
 import static com.baggage.utils.Constants.*;
@@ -105,12 +107,16 @@ public class UserController {
                     passwordEncoder.encode(registationRequest.getPassword()),
                     "USER");
             log.info("stored password "+ passwordEncoder.encode(registationRequest.getPassword()));
-
-            return new ResponseEntity<>(
-                    new CustomResponse<>("OK",
-                    Optional.empty(),
-                    Optional.of(clientService.save(clientDao))), HttpStatus.OK);
+            Optional<ClientDao> maybeExist = clientService.findByUsername(registationRequest.getUsername());
+            if (maybeExist.isPresent())
+                throw new CustomError("username is exist");
+            else
+                return new ResponseEntity<>(
+                        new CustomResponse<>("OK",
+                        Optional.empty(),
+                        Optional.of(clientService.save(clientDao))), HttpStatus.OK);
         } catch (Exception e) {
+            log.warn(e.getMessage());
             return new ResponseEntity<>(new CustomResponse<>("INTERNAL_ERROR",
                     Optional.of("Try later"),
                     Optional.empty()), HttpStatus.OK);
