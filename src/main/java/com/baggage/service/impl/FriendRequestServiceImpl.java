@@ -30,7 +30,7 @@ public class FriendRequestServiceImpl implements FriendRequestService {
     }
 
     public List<Integer> findAllRequestsByUserId(Integer userId) {
-        List<FriendRequestDao> reqs = friendRequestRepository.findAllById(userId);
+        List<FriendRequestDao> reqs = friendRequestRepository.findAllByRecipientId(userId);
         return reqs.stream().map(FriendRequestDao::getSenderId).collect(Collectors.toList());
     }
 
