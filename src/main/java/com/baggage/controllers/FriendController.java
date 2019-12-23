@@ -9,6 +9,7 @@ import com.baggage.service.FriendRequestService;
 import com.baggage.service.FriendsService;
 import com.baggage.utils.CustomError;
 import com.baggage.utils.TokenUtil;
+import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,9 +91,10 @@ public class FriendController {
             Optional<ClientDao> client = clientService.findByUsername(userName);
             if (client.isPresent()) {
                 List<Integer> reqs = friendRequestService.findAllRequestsByUserId(client.get().getId());
+                List<Pair<Integer, String>> reqsUsernames = clientService.findLoginsByIdsAndGetPairs(reqs);
                 return new ResponseEntity<>(new CustomResponse<>(OK,
                         Optional.empty(),
-                        Optional.of(reqs)
+                        Optional.of(reqsUsernames)
                 ), HttpStatus.OK);
             } else {
                 return new ResponseEntity<>(new CustomResponse<>(INTERNAL_ERROR,

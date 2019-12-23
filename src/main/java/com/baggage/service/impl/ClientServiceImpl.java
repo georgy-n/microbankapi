@@ -3,6 +3,7 @@ package com.baggage.service.impl;
 import com.baggage.entity.dao.ClientDao;
 import com.baggage.repository.ClientRepository;
 import com.baggage.service.ClientService;
+import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,10 +48,23 @@ public class ClientServiceImpl implements ClientService {
     @Override
     public List<String> findLoginsByIds(List<Integer> ids) {
         try {
-            List<ClientDao> clientDaos = clientRepository.findAllByIdContaining(ids);
+            List<ClientDao> clientDaos = clientRepository.findAllById(ids);
             return clientDaos.stream().map(ClientDao::getLogin).collect(Collectors.toList());
         } catch (Exception e) {
             logger.error("cant take logins by ids " + ids);
+            return new ArrayList<>();
+        }
+    }
+
+    public List<Pair<Integer, String>> findLoginsByIdsAndGetPairs(List<Integer> ids) {
+        try {
+            List<ClientDao> clientDaos = clientRepository.findAllById(ids);
+            List<Pair<Integer, String>> clientTuples= clientDaos.stream()
+                    .map(client -> new Pair<>(client.getId(),client.getLogin()))
+                    .collect(Collectors.toList());
+            return  clientTuples;
+        } catch (Exception e) {
+            logger.error("can't create pairs: " + ids);
             return new ArrayList<>();
         }
     }
